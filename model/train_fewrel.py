@@ -16,17 +16,23 @@ from model import ZSBert
 
 from argparse import ArgumentParser
 parser = ArgumentParser()
-parser.add_argument("-s", "--seed", help="random seed", type=int, default=500, dest="seed")
-parser.add_argument("-m", "--n_unseen", help="number of unseen classes", type=int, default=10, dest="m")
-parser.add_argument("-g", "--gamma", help="margin factor gamma", type=float, default=7.5, dest="gamma")
-parser.add_argument("-a", "--alpha", help="balance coefficient alpha", type=float, default=0.4, dest="alpha")
-parser.add_argument("-d", "--dist_func", help="distance computing function", type=str, default='inner', dest="dist_func")
-parser.add_argument("-b", "--batch_size", type=int, default=4, dest="batch_size")
+parser.add_argument("-s", "--seed", help="random seed",
+                    type=int, default=500, dest="seed")
+parser.add_argument("-m", "--n_unseen",
+                    help="number of unseen classes", type=int, default=10, dest="m")
+parser.add_argument("-g", "--gamma", help="margin factor gamma",
+                    type=float, default=7.5, dest="gamma")
+parser.add_argument("-a", "--alpha", help="balance coefficient alpha",
+                    type=float, default=0.4, dest="alpha")
+parser.add_argument("-d", "--dist_func", help="distance computing function",
+                    type=str, default='inner', dest="dist_func")
+parser.add_argument("-b", "--batch_size", type=int,
+                    default=4, dest="batch_size")
 parser.add_argument("-e", "--epochs", type=int, default=10, dest="epochs")
 
 args = parser.parse_args()
 # set randam seed, this affects the data spliting.
-random.seed(args.seed) 
+random.seed(args.seed)
 
 # load data
 with open('../data/fewrel_all.json') as f:
@@ -56,9 +62,11 @@ train_label = list(raw_train.keys())
 test_label = list(raw_test.keys())
 print('there are {} kinds of relation in train.'.format(len(set(train_label))))
 print('there are {} kinds of relation in test.'.format(len(set(test_label))))
-print('number of union of train and test: {}'.format(len(set(train_label) & set(test_label))))
+print('number of union of train and test: {}'.format(
+    len(set(train_label) & set(test_label))))
 
-property2idx, idx2property, pid2vec = data_helper.generate_attribute(train_label, test_label, att_dim=1024)
+property2idx, idx2property, pid2vec = data_helper.generate_attribute(
+    train_label, test_label, att_dim=1024)
 
 print(len(training_data))
 print(len(test_data))
@@ -77,8 +85,21 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("device:", device)
 model = model.to(device)
 
-trainset = data_helper.FewRelDataset('train', training_data, pid2vec, property2idx)
-trainloader = DataLoader(trainset, batch_size=args.batch_size, collate_fn=data_helper.create_mini_batch,shuffle=True)
+trainset = data_helper.FewRelDataset(
+    'train', training_data, pid2vec, property2idx)
+rel_ids = set()
+for item in trainset.data:
+    rel_ids.add(item["relation"])
+print(rel_ids)
+rel_vecs = []
+for rel_id in rel_ids:
+    rel_vecs.append(trainset.pid2vec[rel_id])
+rel_vecs = np.array(rel_vecs)
+print(rel_vecs.dim)
+np.savetxt('test.txt', rel_vecs)
+print(len(trainset.data))
+trainloader = DataLoader(trainset, batch_size=args.batch_size,
+                         collate_fn=data_helper.create_mini_batch, shuffle=True)
 
 test_y_attr, test_y = [], []
 test_idxmap = {}
@@ -98,7 +119,7 @@ print(test_y_attr.shape)
 print(test_y.shape)
 
 testset = data_helper.FewRelDataset('test', test_data, pid2vec, property2idx)
-testloader = DataLoader(testset, batch_size=256, 
+testloader = DataLoader(testset, batch_size=256,
                         collate_fn=data_helper.create_mini_batch)
 
 model.train()
@@ -113,16 +134,16 @@ for epoch in range(args.epochs):
     for step, data in enumerate(trainloader):
 
         tokens_tensors, segments_tensors, marked_e1, marked_e2, \
-        masks_tensors, relation_emb, labels = [t.to(device) for t in data]
+            masks_tensors, relation_emb, labels = [t.to(device) for t in data]
         optimizer.zero_grad()
 
-        outputs, out_relation_emb = model(input_ids=tokens_tensors, 
-                                    token_type_ids=segments_tensors,
-                                    e1_mask=marked_e1,
-                                    e2_mask=marked_e2,
-                                    attention_mask=masks_tensors,
-                                    input_relation_emb=relation_emb,
-                                    labels=labels)
+        outputs, out_relation_emb = model(input_ids=tokens_tensors,
+                                          token_type_ids=segments_tensors,
+                                          e1_mask=marked_e1,
+                                          e2_mask=marked_e2,
+                                          attention_mask=masks_tensors,
+                                          input_relation_emb=relation_emb,
+                                          labels=labels)
 
         loss = outputs[0]
         loss.backward()
@@ -134,12 +155,16 @@ for epoch in range(args.epochs):
 
     print('============== EVALUATION ON TEST DATA ==============')
     preds = extract_relation_emb(model, testloader).cpu().numpy()
-    pt, rt, f1t = evaluate(preds, test_y_attr, test_y, test_idxmap, len(set(train_label)), args.dist_func)
-    print(f'[testing performance] precision: {pt:.4f}, recall: {rt:.4f}, f1 score: {f1t:.4f}')
+    pt, rt, f1t = evaluate(preds, test_y_attr, test_y,
+                           test_idxmap, len(set(train_label)), args.dist_func)
+    print(
+        f'[testing performance] precision: {pt:.4f}, recall: {rt:.4f}, f1 score: {f1t:.4f}')
 
     if f1t > best_f1:
         best_p = pt
         best_r = rt
         best_f1 = f1t
-        torch.save(model, f'best_f1_{best_f1}_fewrel_epoch_{epoch}_m_{args.m}_alpha_{args.alpha}_gamma_{args.gamma}')
-    print(f'[best] precision: {best_p:.4f}, recall: {best_r:.4f}, f1 score: {best_f1:.4f}')
+        torch.save(
+            model, f'best_f1_{best_f1}_fewrel_epoch_{epoch}_m_{args.m}_alpha_{args.alpha}_gamma_{args.gamma}')
+    print(
+        f'[best] precision: {best_p:.4f}, recall: {best_r:.4f}, f1 score: {best_f1:.4f}')
