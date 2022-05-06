@@ -4,7 +4,6 @@ import data_helper
 import numpy as np
 import pandas as pd
 from model import ZSBert
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -76,14 +75,9 @@ model = model.to(device)
 
 trainset = data_helper.WikiDataset(
     'train', training_data, pid2vec, property2idx)
-print(train_set)
-rel_ids = set()
-for item in trainset.data:
-    rel_ids.add(item['edgeSet'][0]['kbID'])
-print(rel_ids)
-wiki_processed_embs = np.loadtxt('./embs_wiki_processed.txt')
-for i in range(len(wiki_processed_embs)):
-    trainset.pid2vec[rel_ids[i]] = wiki_processed_embs[i]
+# few_processed_embs = np.loadtxt('./embs_wiki_processed.txt')
+# for i in range(len(few_processed_embs)):
+#     trainset.pid2vec[rel_ids[i]] = few_processed_embs[i]
 
 trainloader = DataLoader(trainset, batch_size=args.batch_size,
                          collate_fn=data_helper.create_mini_batch, shuffle=True)
@@ -110,6 +104,24 @@ testloader = DataLoader(testset, batch_size=256,
 
 model.train()
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-6)
+
+print(train_set)
+rel_ids = set()
+for item in trainset.data:
+    rel_ids.add(item['edgeSet'][0]['kbID'])
+for item in testset.data:
+    rel_ids.add(item['edgeSet'][0]['kbID'])
+print(rel_ids)
+rel_ids = list(rel_ids)
+rel_vecs = []
+for rel_id in rel_ids:
+    rel_vecs.append(trainset.pid2vec[rel_id])
+rel_vecs = np.array(rel_vecs)
+print("shape", rel_vecs.shape)
+wiki_processed_embs = np.loadtxt(
+    './embs_wiki_processed.txt', dtype='double')
+for i in range(len(wiki_processed_embs)):
+    trainset.pid2vec[rel_ids[i]] = wiki_processed_embs[i]
 
 best_p = 0.0
 best_r = 0.0
