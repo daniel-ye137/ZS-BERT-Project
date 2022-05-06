@@ -77,6 +77,14 @@ model = model.to(device)
 trainset = data_helper.WikiDataset(
     'train', training_data, pid2vec, property2idx)
 print(train_set)
+rel_ids = set()
+for item in trainset.data:
+    rel_ids.add(item['edgeSet'][0]['kbID'])
+print(rel_ids)
+wiki_processed_embs = np.loadtxt('./embs_wiki_processed.txt')
+for i in range(len(wiki_processed_embs)):
+    trainset.pid2vec[rel_ids[i]] = wiki_processed_embs[i]
+
 trainloader = DataLoader(trainset, batch_size=args.batch_size,
                          collate_fn=data_helper.create_mini_batch, shuffle=True)
 

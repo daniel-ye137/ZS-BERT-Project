@@ -87,17 +87,22 @@ model = model.to(device)
 
 trainset = data_helper.FewRelDataset(
     'train', training_data, pid2vec, property2idx)
-rel_ids = set()
-for item in trainset.data:
-    rel_ids.add(item["relation"])
-print(rel_ids)
-rel_vecs = []
-for rel_id in rel_ids:
-    rel_vecs.append(trainset.pid2vec[rel_id])
-rel_vecs = np.array(rel_vecs)
-print(rel_vecs.dim)
-np.savetxt('test.txt', rel_vecs)
-print(len(trainset.data))
+
+emb_ids = list(trainset.pid2vec.keys())
+print("embs:", len(emb_ids))
+few_processed_embs = np.loadtxt('./embs_few_rel_processed.txt')
+for i in range(len(few_processed_embs)):
+    trainset.pid2vec[emb_ids[i]] = few_processed_embs[i]
+# embs = []
+# for emb_id in emb_ids:
+#     embs.append(trainset.pid2vec[emb_id])
+# embs = np.array(embs)
+# np.savetxt('embs_few_rel.txt', embs)
+# file = open("emb_ids_few_rel.txt", "w+")
+# content = str(emb_ids)
+# file.write(content)
+# file.close()
+
 trainloader = DataLoader(trainset, batch_size=args.batch_size,
                          collate_fn=data_helper.create_mini_batch, shuffle=True)
 
