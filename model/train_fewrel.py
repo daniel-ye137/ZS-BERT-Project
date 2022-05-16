@@ -92,7 +92,7 @@ emb_ids = list(trainset.pid2vec.keys())
 print(trainset.pid2vec[emb_ids[0]])
 print("embs:", len(emb_ids))
 few_processed_embs = np.loadtxt(
-    './embs_few_rel_processed.txt', dtype=np.double)
+    './embs_few_rel_processed_N_1.txt', dtype=np.double)
 print(few_processed_embs.shape)
 for i in range(len(few_processed_embs)):
     trainset.pid2vec[emb_ids[i]] = few_processed_embs[i]

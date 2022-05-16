@@ -119,7 +119,7 @@ for rel_id in rel_ids:
 rel_vecs = np.array(rel_vecs)
 print("shape", rel_vecs.shape)
 wiki_processed_embs = np.loadtxt(
-    './embs_wiki_processed.txt', dtype='double')
+    './embs_wiki_processed_N_1.txt', dtype='double')
 for i in range(len(wiki_processed_embs)):
     trainset.pid2vec[rel_ids[i]] = wiki_processed_embs[i]
 
